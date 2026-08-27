@@ -1,0 +1,135 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --paper: #f4f1ea;
+  --paper-deep: #e2ded3;
+  --ink: #171717;
+  --muted: #706b61;
+  --line: #c9c2b4;
+  --accent: #b45b42;
+  --accent-dark: #823a2b;
+  --print-clean: #ffffff;
+  --cream: #fbf4df;
+  --soft-pink: #f7dbe2;
+  --soft-blue: #dceaf1;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--paper);
+  color: var(--ink);
+  scrollbar-color: var(--ink) var(--paper-deep);
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--paper);
+  font-family: "Trebuchet MS", "Gill Sans", "Avenir Next", sans-serif;
+  letter-spacing: 0;
+}
+
+::selection {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.font-stamp {
+  font-family: "Courier New", Courier, monospace;
+}
+
+.booth-shell {
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.paper-texture {
+  background-image:
+    radial-gradient(rgba(23, 23, 23, 0.055) 0.6px, transparent 0.6px),
+    linear-gradient(180deg, color-mix(in srgb, var(--print-clean) 30%, transparent), rgba(23, 23, 23, 0.025));
+  background-size: 9px 9px, 100% 100%;
+}
+
+.tactile {
+  box-shadow: 0 3px 0 #171717, 0 14px 28px rgba(23, 23, 23, 0.12);
+  transition: transform 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
+}
+
+.tactile:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #171717, 0 8px 18px rgba(23, 23, 23, 0.1);
+}
+
+.filter-original {
+  filter: none;
+}
+
+.filter-bw {
+  filter: grayscale(100%);
+}
+
+.filter-mono {
+  filter: grayscale(100%) contrast(1.25);
+}
+
+.filter-warm {
+  filter: sepia(0.2) saturate(1.18) hue-rotate(-8deg) contrast(1.04);
+}
+
+.filter-cool {
+  filter: saturate(1.05) hue-rotate(9deg) contrast(1.03);
+}
+
+.filter-vintage {
+  filter: sepia(0.34) saturate(0.76) contrast(1.04);
+}
+
+.filter-film {
+  filter: sepia(0.14) saturate(1.08) contrast(0.95) brightness(1.02);
+}
+
+.filter-fade {
+  filter: saturate(0.72) contrast(0.82) brightness(1.08);
+}
+
+@media print {
+  html,
+  body {
+    background: var(--print-clean) !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-room {
+    min-height: auto !important;
+    padding: 0 !important;
+    background: var(--print-clean) !important;
+  }
+
+  .print-only-strip {
+    margin: 0 auto !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+}

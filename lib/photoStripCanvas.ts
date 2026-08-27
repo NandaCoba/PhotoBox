@@ -2,6 +2,7 @@ import { filters, papers } from "./options";
 import type { BoothSession, LayoutType, PaperDecorationType } from "./types";
 
 type Rect = { x: number; y: number; width: number; height: number };
+type Paper = { id: string; color: string; ink: string };
 
 const loadImage = (src: string) =>
   new Promise<HTMLImageElement>((resolve, reject) => {
@@ -29,11 +30,40 @@ const formatDate = () =>
     .format(new Date())
     .replaceAll("/", " · ");
 
-export const getCanvasSize = (layout: LayoutType) => {
-  if (layout === "double") return { width: 1800, height: 3600 };
-  if (layout === "grid") return { width: 1800, height: 2400 };
-  if (layout === "polaroid") return { width: 1600, height: 2000 };
-  return { width: 1200, height: 3600 };
+const clampPhotoCount = (count: number) => Math.min(Math.max(count, 1), 6);
+
+export const getCanvasSize = (layout: LayoutType, photoCount = 4) => {
+  const count = clampPhotoCount(photoCount);
+  if (layout === "double") return { width: 1800, height: Math.max(3000, count * 650 + 520) };
+  if (layout === "grid") return { width: 1800, height: Math.ceil(count / 2) * 720 + 620 };
+  if (layout === "polaroid") return { width: 1600, height: count > 3 ? 2300 : 2000 };
+  return { width: 1200, height: count * 700 + 620 };
+};
+
+const setFont = (ctx: CanvasRenderingContext2D, weight: number, size: number, family = '"Trebuchet MS", "Gill Sans", sans-serif') => {
+  ctx.font = `${weight} ${size}px ${family}`;
+};
+
+const drawPaperBase = (ctx: CanvasRenderingContext2D, paper: Paper, width: number, height: number) => {
+  ctx.fillStyle = paper.color;
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.save();
+  ctx.globalAlpha = paper.id === "black" ? 0.16 : 0.09;
+  ctx.fillStyle = paper.id === "black" ? "#f4f1ea" : "#171717";
+  for (let x = 12; x < width; x += 30) {
+    for (let y = 10; y < height; y += 30) {
+      if ((x + y) % 90 === 0) ctx.fillRect(x, y, 2, 2);
+    }
+  }
+  ctx.restore();
+
+  ctx.save();
+  const edge = paper.id === "black" ? "rgba(244,241,234,.16)" : "rgba(23,23,23,.1)";
+  ctx.strokeStyle = edge;
+  ctx.lineWidth = 4;
+  ctx.strokeRect(18, 18, width - 36, height - 36);
+  ctx.restore();
 };
 
 const drawHeart = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number, color: string) => {
@@ -121,32 +151,58 @@ const drawPaperDecoration = (
   ctx.restore();
 };
 
+const drawFooter = (ctx: CanvasRenderingContext2D, session: BoothSession, paper: Paper, width: number, height: number) => {
+  ctx.save();
+  ctx.filter = "none";
+  ctx.fillStyle = paper.ink;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+
+  const title = session.caption?.trim() || "PHOTOBOX";
+  const titleSize = title.length > 18 ? 58 : 68;
+  setFont(ctx, 700, titleSize);
+  ctx.fillText(title.toUpperCase(), width / 2, height - 235);
+
+  if (session.showDate) {
+    setFont(ctx, 400, 40, '"Courier New", Courier, monospace');
+    ctx.fillText(formatDate(), width / 2, height - 162);
+  }
+
+  setFont(ctx, 400, 30, '"Courier New", Courier, monospace');
+  ctx.globalAlpha = 0.78;
+  ctx.fillText("little moments, kept.", width / 2, height - 82);
+  ctx.restore();
+};
+
 export async function renderPhotoStrip(session: BoothSession): Promise<string> {
-  const { width, height } = getCanvasSize(session.layout);
+  const requestedCount = clampPhotoCount(session.captureCount || session.photos.length || 4);
+  const { width, height } = getCanvasSize(session.layout, requestedCount);
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas is not available.");
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
 
   const paper = papers.find((item) => item.id === session.paper) ?? papers[0];
   const filter = filters.find((item) => item.id === session.filter) ?? filters[0];
-  const images = await Promise.all(session.photos.map(loadImage));
+  const images = (await Promise.all(session.photos.map(loadImage))).slice(0, requestedCount);
 
-  ctx.fillStyle = paper.color;
-  ctx.fillRect(0, 0, width, height);
-  ctx.fillStyle = "rgba(0,0,0,.045)";
-  for (let x = 0; x < width; x += 28) {
-    for (let y = 0; y < height; y += 28) {
-      if ((x + y) % 84 === 0) ctx.fillRect(x, y, 2, 2);
-    }
-  }
+  drawPaperBase(ctx, paper, width, height);
   drawPaperDecoration(ctx, session.paperDecoration ?? "plain", width, height, paper.ink);
 
   const drawPhoto = (image: HTMLImageElement, rect: Rect) => {
     ctx.save();
-    ctx.fillStyle = paper.id === "black" ? "#242424" : "#ffffff";
-    ctx.fillRect(rect.x - 10, rect.y - 10, rect.width + 20, rect.height + 20);
+    ctx.shadowColor = "rgba(23,23,23,.16)";
+    ctx.shadowBlur = 16;
+    ctx.shadowOffsetY = 10;
+    ctx.fillStyle = paper.id === "black" ? "#242424" : "#fdfcf7";
+    ctx.fillRect(rect.x - 16, rect.y - 16, rect.width + 32, rect.height + 32);
+    ctx.shadowColor = "transparent";
+    ctx.strokeStyle = paper.id === "black" ? "rgba(244,241,234,.18)" : "rgba(23,23,23,.12)";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(rect.x - 16, rect.y - 16, rect.width + 32, rect.height + 32);
     ctx.beginPath();
     ctx.rect(rect.x, rect.y, rect.width, rect.height);
     ctx.clip();
@@ -157,11 +213,21 @@ export async function renderPhotoStrip(session: BoothSession): Promise<string> {
 
   if (session.layout === "double") {
     const stripWidth = width / 2;
-    const margin = 80;
-    const gutter = 42;
+    const margin = 92;
+    const gutter = 54;
+    const footer = 410;
     const photoWidth = stripWidth - margin * 2;
-    const photoHeight = 660;
-    images.slice(0, 4).forEach((image, index) => {
+    const photoHeight = (height - margin * 2 - footer - gutter * (images.length - 1)) / images.length;
+    ctx.save();
+    ctx.strokeStyle = paper.id === "black" ? "rgba(244,241,234,.24)" : "rgba(23,23,23,.16)";
+    ctx.setLineDash([22, 20]);
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(width / 2, 70);
+    ctx.lineTo(width / 2, height - 70);
+    ctx.stroke();
+    ctx.restore();
+    images.forEach((image, index) => {
       [0, 1].forEach((column) => {
         const x = column * stripWidth + margin;
         const y = margin + index * (photoHeight + gutter);
@@ -170,10 +236,11 @@ export async function renderPhotoStrip(session: BoothSession): Promise<string> {
     });
   } else if (session.layout === "grid") {
     const margin = 120;
-    const gap = 48;
+    const gap = 58;
+    const rows = Math.ceil(images.length / 2);
     const photoWidth = (width - margin * 2 - gap) / 2;
-    const photoHeight = 760;
-    images.slice(0, 4).forEach((image, index) => {
+    const photoHeight = (height - margin * 2 - 410 - gap * (rows - 1)) / rows;
+    images.forEach((image, index) => {
       const col = index % 2;
       const row = Math.floor(index / 2);
       drawPhoto(image, {
@@ -186,16 +253,22 @@ export async function renderPhotoStrip(session: BoothSession): Promise<string> {
   } else if (session.layout === "polaroid") {
     const margin = 120;
     const main = images[0];
-    if (main) drawPhoto(main, { x: margin, y: margin, width: width - margin * 2, height: 1180 });
+    if (main) drawPhoto(main, { x: margin, y: margin, width: width - margin * 2, height: 1160 });
+    const thumbGap = 34;
+    const thumbCols = Math.min(3, Math.max(1, images.length - 1));
+    const thumbWidth = (width - margin * 2 - thumbGap * (thumbCols - 1)) / thumbCols;
     images.slice(1, 4).forEach((image, index) => {
-      drawPhoto(image, { x: margin + index * 455, y: 1370, width: 400, height: 300 });
+      drawPhoto(image, { x: margin + index * (thumbWidth + thumbGap), y: 1360, width: thumbWidth, height: 330 });
+    });
+    images.slice(4, 6).forEach((image, index) => {
+      drawPhoto(image, { x: margin + index * (thumbWidth + thumbGap), y: 1780, width: thumbWidth, height: 300 });
     });
   } else {
-    const margin = 86;
-    const gap = 44;
-    const footer = 360;
-    const photoHeight = (height - margin * 2 - footer - gap * 3) / 4;
-    images.slice(0, 4).forEach((image, index) => {
+    const margin = 92;
+    const gap = 54;
+    const footer = 430;
+    const photoHeight = (height - margin * 2 - footer - gap * (images.length - 1)) / images.length;
+    images.forEach((image, index) => {
       drawPhoto(image, {
         x: margin,
         y: margin + index * (photoHeight + gap),
@@ -205,18 +278,7 @@ export async function renderPhotoStrip(session: BoothSession): Promise<string> {
     });
   }
 
-  ctx.filter = "none";
-  ctx.fillStyle = paper.ink;
-  ctx.textAlign = "center";
-  ctx.font = "700 72px Arial, sans-serif";
-  const footerY = height - 230;
-  ctx.fillText(session.caption?.trim() || "PHOTOBOX", width / 2, footerY);
-  if (session.showDate) {
-    ctx.font = "42px Courier New, monospace";
-    ctx.fillText(formatDate(), width / 2, footerY + 74);
-  }
-  ctx.font = "32px Courier New, monospace";
-  ctx.fillText("little moments, kept.", width / 2, height - 72);
+  drawFooter(ctx, session, paper, width, height);
 
   return canvas.toDataURL("image/png");
 }

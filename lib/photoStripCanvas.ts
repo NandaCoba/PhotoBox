@@ -31,13 +31,37 @@ const formatDate = () =>
     .replaceAll("/", " · ");
 
 const clampPhotoCount = (count: number) => Math.min(Math.max(count, 1), 6);
+const portraitHeight = (width: number) => width * 1.25;
 
 export const getCanvasSize = (layout: LayoutType, photoCount = 4) => {
   const count = clampPhotoCount(photoCount);
-  if (layout === "double") return { width: 1800, height: Math.max(3000, count * 650 + 520) };
-  if (layout === "grid") return { width: 1800, height: Math.ceil(count / 2) * 720 + 620 };
+  if (layout === "double") {
+    const width = 1800;
+    const stripWidth = width / 2;
+    const margin = 92;
+    const gap = 54;
+    const footer = 430;
+    const photoWidth = stripWidth - margin * 2;
+    return { width, height: Math.ceil(margin * 2 + portraitHeight(photoWidth) * count + gap * (count - 1) + footer) };
+  }
+  if (layout === "grid") {
+    const width = 1800;
+    const margin = 120;
+    const gap = 58;
+    const footer = 430;
+    const rows = Math.ceil(count / 2);
+    const photoWidth = (width - margin * 2 - gap) / 2;
+    return { width, height: Math.ceil(margin * 2 + portraitHeight(photoWidth) * rows + gap * (rows - 1) + footer) };
+  }
   if (layout === "polaroid") return { width: 1600, height: count > 3 ? 2300 : 2000 };
-  return { width: 1200, height: count * 700 + 620 };
+  {
+    const width = 1200;
+    const margin = 92;
+    const gap = 54;
+    const footer = 430;
+    const photoWidth = width - margin * 2;
+    return { width, height: Math.ceil(margin * 2 + portraitHeight(photoWidth) * count + gap * (count - 1) + footer) };
+  }
 };
 
 const setFont = (ctx: CanvasRenderingContext2D, weight: number, size: number, family = '"Trebuchet MS", "Gill Sans", sans-serif') => {
@@ -215,9 +239,8 @@ export async function renderPhotoStrip(session: BoothSession): Promise<string> {
     const stripWidth = width / 2;
     const margin = 92;
     const gutter = 54;
-    const footer = 410;
     const photoWidth = stripWidth - margin * 2;
-    const photoHeight = (height - margin * 2 - footer - gutter * (images.length - 1)) / images.length;
+    const photoHeight = portraitHeight(photoWidth);
     ctx.save();
     ctx.strokeStyle = paper.id === "black" ? "rgba(244,241,234,.24)" : "rgba(23,23,23,.16)";
     ctx.setLineDash([22, 20]);
@@ -237,9 +260,8 @@ export async function renderPhotoStrip(session: BoothSession): Promise<string> {
   } else if (session.layout === "grid") {
     const margin = 120;
     const gap = 58;
-    const rows = Math.ceil(images.length / 2);
     const photoWidth = (width - margin * 2 - gap) / 2;
-    const photoHeight = (height - margin * 2 - 410 - gap * (rows - 1)) / rows;
+    const photoHeight = portraitHeight(photoWidth);
     images.forEach((image, index) => {
       const col = index % 2;
       const row = Math.floor(index / 2);
@@ -266,13 +288,13 @@ export async function renderPhotoStrip(session: BoothSession): Promise<string> {
   } else {
     const margin = 92;
     const gap = 54;
-    const footer = 430;
-    const photoHeight = (height - margin * 2 - footer - gap * (images.length - 1)) / images.length;
+    const photoWidth = width - margin * 2;
+    const photoHeight = portraitHeight(photoWidth);
     images.forEach((image, index) => {
       drawPhoto(image, {
         x: margin,
         y: margin + index * (photoHeight + gap),
-        width: width - margin * 2,
+        width: photoWidth,
         height: photoHeight,
       });
     });

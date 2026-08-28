@@ -1,5 +1,7 @@
 # PHOTOBOX
 
+![Backpack portable backend toolkit cover](images/backpack.png)
+
 A modern digital photo booth built with Next.js, TypeScript, Tailwind CSS, browser camera APIs, and Canvas.
 
 ## Run

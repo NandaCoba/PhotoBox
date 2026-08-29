@@ -9,7 +9,7 @@ export default function Home() {
         <p className="font-stamp text-sm font-bold tracking-normal">PHOTOBOX</p>
         <p className="font-stamp text-xs text-[#706b61]">your photos stay on this device.</p>
       </header>
-      <section className="mx-auto grid w-full max-w-6xl items-center gap-10 py-10 md:grid-cols-[1fr_320px]">
+      <section className="mx-auto grid w-full max-w-6xl items-center gap-10 py-10 lg:grid-cols-[1fr_320px_280px]">
         <div className="max-w-3xl">
           <h1 className="max-w-2xl text-5xl font-semibold leading-[1.02] text-[#171717] md:text-7xl">
             take some pictures.
@@ -38,6 +38,22 @@ export default function Home() {
             </div>
           </div>
         </div>
+        <a
+          href="https://saweria.co/nandacoba"
+          target="_blank"
+          rel="noreferrer"
+          className="paper-texture mx-auto grid w-full max-w-[280px] gap-3 border border-[#c9c2b4] bg-[#fdfcf7] p-3 text-center shadow-[0_18px_38px_rgba(23,23,23,.14)]"
+          aria-label="Support PHOTOBOX on Saweria"
+        >
+          <span className="font-stamp text-xs font-bold uppercase text-[#823a2b]">support this project</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/saweria-support.png"
+            alt="QR code to support NandaCoba on Saweria"
+            className="aspect-square w-full border border-[#e2ded3] bg-white object-cover [object-position:77%_48%]"
+          />
+          <span className="font-stamp text-xs text-[#706b61]">saweria.co/nandacoba</span>
+        </a>
       </section>
       <footer className="font-stamp text-xs text-[#706b61]">photobox - made for little moments.</footer>
     </main>

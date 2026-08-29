@@ -2,6 +2,10 @@
 
 A modern digital photo booth built with Next.js, TypeScript, Tailwind CSS, browser camera APIs, and Canvas.
 
+![Support NandaCoba on Saweria](public/saweria-support.png)
+
+Support this project at [saweria.co/nandacoba](https://saweria.co/nandacoba).
+
 ## Run
 
 ```bash
